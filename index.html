@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>한의학 용어 변환</title>
+  <style>
+    #suggestions {
+      border: 1px solid #ccc;
+      display: none;
+      position: absolute;
+      background-color: white;
+      width: 300px;
+    }
+    .suggestion-item {
+      padding: 8px;
+      cursor: pointer;
+    }
+    .suggestion-item:hover {
+      background-color: #f0f0f0;
+    }
+    .meaning {
+      font-size: 0.8em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <input type="text" id="input" placeholder="한글 용어를 입력하세요" />
+  <div id="suggestions"></div>
+
+  <script src="rawData.js"></script>
+  <script>
+    // 데이터 로드 확인
+    if (typeof rawData === 'undefined') {
+      console.error('rawData is not defined');
+    } else {
+      console.log('rawData:', rawData);
+    }
+
+    class TrieNode {
+      constructor() {
+        this.children = {};
+        this.endOfWord = false;
+        this.entries = [];
+      }
+    }
+
+    class Trie {
+      constructor() {
+        this.root = new TrieNode();
+      }
+
+      insert(word, hanja, meaning) {
+        let node = this.root;
+        for (let char of word) {
+          if (!node.children[char]) {
+            node.children[char] = new TrieNode();
+          }
+          node = node.children[char];
+        }
+        node.endOfWord = true;
+        node.entries.push({ hanja, meaning });
+      }
+
+      search(word) {
+        let node = this.root;
+        for (let char of word) {
+          if (!node.children[char]) {
+            return null;
+          }
+          node = node.children[char];
+        }
+        return node.endOfWord ? node.entries : null;
+      }
+    }
+
+    const trie = new Trie();
+
+    rawData.forEach(({ hangul, hanja, meaning }) => {
+      trie.insert(hangul, hanja, meaning);
+    });
+
+    const input = document.getElementById('input');
+    const suggestions = document.getElementById('suggestions');
+
+    input.addEventListener('input', () => {
+      const value = input.value.trim();
+      console.log('입력 값:', value); // 입력 값 확인
+      const entries = trie.search(value);
+
+      suggestions.innerHTML = '';
+      if (entries && entries.length > 0) {
+        entries.forEach(({ hanja, meaning }) => {
+          const item = document.createElement('div');
+          item.classList.add('suggestion-item');
+          item.innerHTML = `<strong>${hanja}</strong><div class="meaning">${meaning}</div>`;
+          item.addEventListener('click', () => {
+            input.value = hanja;
+            suggestions.style.display = 'none';
+          });
+          suggestions.appendChild(item);
+        });
+        suggestions.style.display = 'block';
+      } else {
+        suggestions.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!suggestions.contains(event.target) && event.target !== input) {
+        suggestions.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
